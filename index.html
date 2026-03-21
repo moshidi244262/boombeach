@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>海岛奇兵数据中心 (Boom Beach Data Hub)</title>
+    <style>
+        /* * 纯原生 CSS 重构，不再依赖任何外部网络 CDN
+         * 确保在本地打包为 Android App 时 100% 完美运行 
+         */
+        :root {
+            --primary: #0ea5e9;
+            --bg-color: #f4f7f6;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --sidebar-width: 260px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            height: 100dvh; /* 适配移动端动态浏览器工具栏高度 */
+            width: 100vw;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- 隐藏滚动条 --- */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* --- 毛玻璃基础类 --- */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+
+        /* --- 侧边栏 --- */
+        #sidebar {
+            width: var(--sidebar-width);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 50;
+            border-right: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.02);
+        }
+
+        .sidebar-header {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-weight: bold;
+            font-size: 1.125rem;
+            color: #111827;
+        }
+
+        .nav-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+            font-size: 0.9rem;
+            color: #374151;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .nav-item:hover { background: rgba(255,255,255,0.6); }
+        .nav-item.active {
+            background: rgba(255,255,255,0.9);
+            border-left: 4px solid var(--primary);
+            color: var(--primary);
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .nav-icon { font-size: 1.2rem; margin-right: 12px; }
+
+        /* --- 主内容区 --- */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            position: relative;
+        }
+
+        .header {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 30;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .header-left { display: flex; align-items: center; }
+        
+        .menu-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4b5563;
+        }
+        .menu-btn:hover { background: rgba(0,0,0,0.05); }
+
+        .header-title {
+            margin-left: 16px;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        /* 搜索框 */
+        .search-box { position: relative; width: 220px; }
+        .search-input {
+            width: 100%;
+            padding: 8px 16px 8px 36px;
+            border-radius: 999px;
+            border: 1px solid #d1d5db;
+            background: rgba(255,255,255,0.7);
+            outline: none;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(14,165,233,0.2);
+            background: #fff;
+        }
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            fill: var(--text-muted);
+        }
+
+        /* 内容区域 */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px 60px 24px;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+        .breadcrumb svg { width: 14px; height: 14px; margin: 0 6px; fill: currentColor; }
+        .breadcrumb-current { color: var(--primary); font-weight: 500; }
+
+        /* 子分类导航条 */
+        .sub-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        .sub-nav-btn {
+            padding: 8px 18px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            color: #4b5563;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        
+        @media (hover: hover) {
+            .sub-nav-btn:hover {
+                background: rgba(255, 255, 255, 0.9);
+                transform: translateY(-1px);
+            }
+        }
+        
+        .sub-nav-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+
+        /* 响应式网格布局 */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .data-card {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+        
+        @media (hover: hover) {
+            .data-card:hover {
+                transform: translateY(-4px) translateZ(0);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.06);
+                background: rgba(255, 255, 255, 0.8);
+            }
+        }
+
+        .data-card:active {
+            transform: scale(0.96) translateZ(0);
+            background: rgba(255, 255, 255, 0.9);
+            transition: transform 0.1s;
+        }
+
+        .card-img-box {
+            width: 100%;
+            height: 80px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(0,0,0,0.03);
+            overflow: hidden; /* 防止内部图片溢出 */
+        }
+        .card-img-box svg { width: 28px; height: 28px; fill: #d1d5db; }
+        
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #1f2937;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+
+        /* 移动端适配 */
+        #mobile-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(2px);
+            z-index: 40;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s;
+        }
+        #mobile-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+                box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+            }
+            .sidebar-hidden {
+                transform: translateX(-100%);
+            }
+            .header-title { display: none; }
+            .search-box { width: 160px; }
+            .content-area { padding: 16px 16px 80px 16px; } 
+            .grid-container { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+            .data-card { padding: 12px; }
+            .card-img-box { height: 70px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 移动端遮罩 -->
+    <div id="mobile-overlay"></div>
+
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="glass-panel sidebar-hidden">
+        <div class="sidebar-header">
+            <svg style="width:24px;height:24px;margin-right:8px;fill:#0ea5e9;" viewBox="0 0 24 24"><path d="M2 12c0-3.87 3.13-7 7-7 3.87 0 7 3.13 7 7s-3.13 7-7 7-7-3.13-7-7zm7-5c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm10.28-4.59l1.42 1.42-2.12 2.12-1.42-1.42 2.12-2.12zM22 11h2v2h-2v-2zm-1.6 6.46l1.42-1.42 2.12 2.12-1.42 1.42-2.12-2.12zM12 2h2v2h-2V2z"/></svg>
+            海岛数据中心
+        </div>
+        <nav id="nav-list" class="nav-list no-scrollbar">
+            <!-- JS 动态生成 -->
+        </nav>
+        <div style="padding: 16px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid rgba(0,0,0,0.05);">
+            Boom Beach Data Hub v2.0
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <div class="main-wrapper">
+        <header class="header glass-panel">
+            <div class="header-left">
+                <button id="toggle-sidebar" class="menu-btn">
+                    <svg style="width:24px;height:24px;fill:currentColor;" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                </button>
+                <div id="current-category-title" class="header-title">大本营</div>
+            </div>
+            
+            <div class="search-box">
+                <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="search-input" class="search-input" placeholder="搜索数据...">
+            </div>
+        </header>
+
+        <main class="content-area no-scrollbar">
+            <div class="breadcrumb">
+                <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                主页 
+                <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                <span id="breadcrumb-current" class="breadcrumb-current">大本营</span>
+            </div>
+
+            <!-- 子分类导航区 -->
+            <div id="sub-nav" class="sub-nav no-scrollbar" style="display: none;"></div>
+
+            <div id="data-container">
+                <!-- 数据卡片渲染区 -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 定义板块结构
+        const categories = [
+            { id: 'hq', name: '大本营', icon: '🏠' },
+            { id: 'troops', name: '兵种', icon: '⚔️' },
+            { id: 'defenses', name: '防御建筑', icon: '🛡️' },
+            { id: 'devices', name: '建筑装置', icon: '⚙️' },
+            { id: 'special', name: '特殊建筑', icon: '✨' },
+            { id: 'heroes_commanders', name: '英雄与队长', icon: '🦸' },
+            { id: 'gunboat', name: '战舰武器', icon: '🚀' },
+            { id: 'support', name: '支持类建筑', icon: '🏗️' },
+            { id: 'economy', name: '经济类建筑', icon: '💰' },
+            { id: 'events', name: '重要事件', icon: '📅' },
+            { id: 'others', name: '其他', icon: '📦' }
+        ];
+
+        // 真实数据池：已完整接入分类数据并遵循规则映射图片路径
+        const dbData = {
+            'hq': [
+                { group: null, items: [
+                    { name: '主基地大本营', img: 'images/大本营/HQ21.webp' },
+                    { name: '资源岛大本营', img: 'images/大本营/Sub.webp' },
+                    { name: '能量中心', img: 'images/大本营/Powercore.webp' },
+                    { name: '超级核心', img: 'images/大本营/MegaCore.webp' },
+                    { name: '战争工厂', img: '' },
+                    { name: '引擎室', img: 'images/大本营/Engine_Room.webp' }
+                ]}
+            ],
+            'troops': [
+                { group: '普通兵种', items: [
+                    { name: '步兵', img: 'images/兵种/普通兵种/RiflemanD.webp' },
+                    { name: '重机枪手', img: 'images/兵种/普通兵种/HeavyD.webp' },
+                    { name: '火箭炮手', img: 'images/兵种/普通兵种/ZookaD.webp' },
+                    { name: '土著勇士', img: 'images/兵种/普通兵种/WarriorD.webp' },
+                    { name: '坦克', img: 'images/兵种/普通兵种/Tanknew.webp' },
+                    { name: '医师', img: 'images/兵种/普通兵种/Medicc.webp' },
+                    { name: '投弹兵', img: 'images/兵种/普通兵种/GrenadierB.webp' },
+                    { name: '烈焰战车', img: 'images/兵种/普通兵种/Scorcher.webp' },
+                    { name: '激光突击兵', img: 'images/兵种/普通兵种/LaserRanger.webp' },
+                    { name: '极冻先锋', img: 'images/兵种/普通兵种/Cryoneer.webp' },
+                    { name: '迫击炮手', img: 'images/兵种/普通兵种/Bombardier.webp' },
+                    { name: '机甲', img: 'images/兵种/普通兵种/Mech.webp' },
+                    { name: '火箭直升机', img: 'images/兵种/普通兵种/Rocket_Choppa.webp' }
+                ]},
+                { group: '原型部队', items: [
+                    { name: '重型直升机', img: 'images/兵种/原型部队/Heavy_Choppa.webp' },
+                    { name: '极冻炮手', img: 'images/兵种/原型部队/Cryobombardier.webp' },
+                    { name: '西瓜炮手', img: 'images/兵种/原型部队/Melon_BombardierB.webp' },
+                    { name: '激光坦克', img: 'images/兵种/原型部队/Lazortron.webp' },
+                    { name: '弹雨战车', img: 'images/兵种/原型部队/RainMaker.webp' },
+                    { name: '小怪战车', img: 'images/兵种/原型部队/Critter_Tank-0.webp' },
+                    { name: '极冻坦克', img: 'images/兵种/原型部队/CryoTank_01.webp' },
+                    { name: '克隆步兵', img: 'images/兵种/原型部队/CloneRiflemanB.webp' },
+                    { name: '震爆投弹兵', img: 'images/兵种/原型部队/Stunner.webp' },
+                    { name: '震爆突击兵', img: 'images/兵种/原型部队/ShockaneerB.webp' },
+                    { name: '营养医师', img: 'images/兵种/原型部队/Drvitamin2.webp' },
+                    { name: '守护者', img: 'images/兵种/原型部队/Villager17b.webp' },
+                    { name: '工程师', img: 'images/兵种/原型部队/Turret_Engineer_2.webp' },
+                    { name: '生物工程师', img: 'images/兵种/原型部队/Critter_Engineer.webp' },
+                    { name: '超级烈焰战车', img: 'images/兵种/原型部队/Incinerator2.webp' },
+                    { name: '吸血火箭炮手', img: 'images/兵种/原型部队/VampireZookaBHiRes.webp' },
+                    { name: '阿呆步兵', img: 'images/兵种/原型部队/RiflemanD.webp' },
+                    { name: '伪装步兵', img: 'images/兵种/原型部队/RiflemanD.webp' },
+                    { name: '隐身战士', img: 'images/兵种/原型部队/Hidden_Warrior.webp' },
+                    { name: '追踪机器人', img: 'images/兵种/原型部队/Seeker.webp' },
+                    { name: '伪装重机枪手', img: 'images/兵种/原型部队/HeavyD.webp' },
+                    { name: '火箭直升机(改版)', img: 'images/兵种/原型部队/Rocket_Choppa.webp' },
+                    { name: '焚火战车(改版)', img: 'images/兵种/原型部队/Incinerator2.webp' }
+                ]},
+                { group: '超级兵种', items: [
+                    { name: '超级步兵', img: 'images/兵种/超级兵种/wenhao.webp' },
+                    { name: '超级机枪手', img: 'images/兵种/超级兵种/wenhao.webp' },
+                    { name: '超级战士', img: 'images/兵种/超级兵种/wenhao.webp' },
+                    { name: '超级医生', img: 'images/兵种/超级兵种/wenhao.webp' },
+                    { name: '超级投弹兵', img: 'images/兵种/超级兵种/wenhao.webp' },
+                    { name: '超级小怪蝙蝠', img: 'images/兵种/超级兵种/wenhao.webp' }
+                ]}
+            ],
+            'defenses': [
+                { group: '普通防御建筑', items: [
+                    { name: '狙击塔', img: 'images/防御建筑/普通防御建筑/SniperTower22.webp' },
+                    { name: '迫击炮', img: 'images/防御建筑/普通防御建筑/Mortar22.webp' },
+                    { name: '重机枪', img: 'images/防御建筑/普通防御建筑/MachineGun22.webp' },
+                    { name: '加农炮', img: 'images/防御建筑/普通防御建筑/Cannon22.webp' },
+                    { name: '火焰喷射器', img: 'images/防御建筑/普通防御建筑/Flamethrower19.webp' },
+                    { name: '巨型加农炮', img: 'images/防御建筑/普通防御建筑/Boom_Cannon16new.webp' },
+                    { name: '火箭发射器', img: 'images/防御建筑/普通防御建筑/RocketLauncher14.webp' },
+                    { name: '小怪发射器', img: 'images/防御建筑/普通防御建筑/Critter_Launcher_08_to_16-removebg-preview.webp' },
+                    { name: '震爆火箭炮', img: 'images/防御建筑/普通防御建筑/ShockLauncher8.webp' },
+                    { name: '地堡', img: 'images/防御建筑/普通防御建筑/Bunker_lvl01.webp' },
+                    { name: '地雷', img: 'images/防御建筑/普通防御建筑/Mine_1.webp' },
+                    { name: '高爆地雷', img: 'images/防御建筑/普通防御建筑/BoomMinec.webp' },
+                    { name: '震爆地雷', img: 'images/防御建筑/普通防御建筑/ShockMinec.webp' }
+                ]},
+                { group: '原型防御建筑', items: [
+                    { name: '震爆器', img: 'images/防御建筑/原型防御建筑/ShockBlasterIII.webp' },
+                    { name: '激光', img: 'images/防御建筑/原型防御建筑/LazorBeamIII.webp' },
+                    { name: '毁灭加农炮', img: 'images/防御建筑/原型防御建筑/DoomCannon3.webp' },
+                    { name: '伤害放大器', img: 'images/防御建筑/原型防御建筑/DamageAmplifierIII.webp' },
+                    { name: '护盾发生器', img: 'images/防御建筑/原型防御建筑/ShieldGeneratorIII.webp' },
+                    { name: '高压喷火器', img: 'images/防御建筑/原型防御建筑/HotPotIII.webp' },
+                    { name: '机械飞爪', img: 'images/防御建筑/原型防御建筑/GrapplerIII.webp' },
+                    { name: '西蒙狙击塔', img: 'images/防御建筑/原型防御建筑/SIMOIII.webp' },
+                    { name: '防空护盾', img: 'images/防御建筑/原型防御建筑/SkyShieldIII.webp' },
+                    { name: '微波烤炉', img: 'images/防御建筑/原型防御建筑/MicrowavrIII.webp' },
+                    { name: '惊喜双管炮', img: 'images/防御建筑/原型防御建筑/BoomSurpriseIII.webp' },
+                    { name: '诡雷火炮', img: 'images/防御建筑/原型防御建筑/FlotsamCannonIII.webp' }
+                ]}
+            ],
+            'devices': [
+                { group: '全部', items: [] },
+                { group: '加成', items: [
+                    { name: '自然馈赠', img: 'images/建筑装置/Nature_Boon.webp' },
+                    { name: '水晶增幅器', img: 'images/建筑装置/Crystal_Booster.webp' }
+                ]},
+                { group: '防御', items: [
+                    { name: '葡萄弹', img: 'images/建筑装置/Grapeshot.webp' },
+                    { name: '加热器', img: 'images/建筑装置/Heater.webp' },
+                    { name: '避雷针', img: 'images/建筑装置/Lightning_Rod.webp' },
+                    { name: '寒冰护盾', img: 'images/建筑装置/Ice_Shield.webp' },
+                    { name: '雨伞护盾', img: 'images/建筑装置/Umbrella_Shield.webp' }
+                ]},
+                { group: '战斗', items: [
+                    { name: '强力推进剂', img: 'images/建筑装置/Propellant_Boost.webp' },
+                    { name: '精准索敌器', img: 'images/建筑装置/Selective_Targeting.webp' },
+                    { name: '小怪护盾', img: 'images/建筑装置/Critter_Shield.webp' },
+                    { name: '强化瞄准', img: 'images/建筑装置/Improved_Munitions.webp' },
+                    { name: '雷达探测仪', img: 'images/建筑装置/Radar_Detection.webp' }
+                ]},
+                { group: '生存', items: [
+                    { name: '护盾充能器', img: 'images/建筑装置/Shield_Charger.webp' },
+                    { name: '装甲镀层', img: 'images/建筑装置/Armor_Plating.webp' },
+                    { name: '混凝土', img: 'images/建筑装置/Concrete.webp' },
+                    { name: '能量护盾', img: 'images/建筑装置/Energy_Shield.webp' },
+                    { name: '汲取器', img: 'images/建筑装置/Leecher.webp' },
+                    { name: '维修机器人', img: 'images/建筑装置/Repair_Bots.webp' }
+                ]},
+                { group: '额外技能', items: [
+                    { name: '额外驻守', img: 'images/建筑装置/Extra_Garrison.webp' },
+                    { name: '士气粉碎', img: 'images/建筑装置/Morale_Shaker.webp' },
+                    { name: '爆破器', img: 'images/建筑装置/Demolition.webp' },
+                    { name: '嘲讽器', img: 'images/建筑装置/Taunter.webp' },
+                    { name: '冷冻器', img: 'images/建筑装置/Freezer.webp' },
+                    { name: '电击器', img: 'images/建筑装置/Zapper.webp' }
+                ]}
+            ],
+            'special': [
+                { group: '螃蟹：减益建筑', items: [
+                    { name: '烟火盒', img: 'images/特殊建筑/螃蟹：减益建筑/yhh.webp' },
+                    { name: '巨型螃蟹火焰喷射器', img: 'images/特殊建筑/螃蟹：减益建筑/Mega_FlameThrower1.webp' },
+                    { name: '恐惧迫击炮', img: 'images/特殊建筑/螃蟹：减益建筑/ScaryMortar.webp' },
+                    { name: '护盾脉冲器', img: 'images/特殊建筑/螃蟹：减益建筑/Shield Pulser.webp' },
+                    { name: 'T博士相似者', img: 'images/特殊建筑/螃蟹：减益建筑/TLookalike.webp' },
+                    { name: '火焰炸弹', img: 'images/特殊建筑/螃蟹：减益建筑/Firebomb.webp' },
+                    { name: '攻击雕像', img: 'images/特殊建筑/螃蟹：减益建筑/IceDBDMc.webp' },
+                    { name: '加农炮火炮技能', img: 'images/特殊建筑/螃蟹：减益建筑/jnphpjn.webp' },
+                    { name: '加农炮弹幕技能', img: 'images/特殊建筑/螃蟹：减益建筑/jnpdmjn.webp' },
+                    { name: '加农炮震爆技能', img: 'images/特殊建筑/螃蟹：减益建筑/jnpzbjn.webp' }
+                ]},
+                { group: '螃蟹：增益建筑', items: [
+                    { name: '小怪容器', img: 'images/特殊建筑/螃蟹：增益建筑/CritterContainer.webp' },
+                    { name: '冷冻炸弹', img: 'images/特殊建筑/螃蟹：增益建筑/CryoBomb.webp' },
+                    { name: '速度精华', img: 'images/特殊建筑/螃蟹：增益建筑/SpeedSerum.webp' },
+                    { name: '小怪蝙蝠容器', img: 'images/特殊建筑/螃蟹：增益建筑/HalloweenContainer.webp' },
+                    { name: '超级士兵大桶', img: 'images/特殊建筑/螃蟹：增益建筑/Super_Soldier_Vat.webp' },
+                    { name: '惊喜蛋糕', img: 'images/特殊建筑/螃蟹：增益建筑/Surprise_Cake.webp' }
+                ]},
+                { group: '哈莫曼/恐怖博士/特遣队任务', items: [
+                    { name: '超级迫击炮3000', img: 'images/特殊建筑/哈莫曼_恐怖博士_特遣队任务/Super_MortarJ.webp' },
+                    { name: 'MMG9000', img: 'images/特殊建筑/哈莫曼_恐怖博士_特遣队任务/MMG900.webp' },
+                    { name: '铁丝网', img: 'images/特殊建筑/哈莫曼_恐怖博士_特遣队任务/BarbedWire.webp' },
+                    { name: '地刺', img: 'images/特殊建筑/哈莫曼_恐怖博士_特遣队任务/BarbedWire.webp' },
+                    { name: '供应物建筑', img: 'images/特殊建筑/哈莫曼_恐怖博士_特遣队任务/FactorySupplies.webp' }
+                ]}
+            ],
+            'heroes_commanders': [
+                { group: '英雄', items: [
+                    { name: '布里克中士', img: 'images/英雄与队长/英雄/Sgt_Brick.webp' },
+                    { name: '巫医卡万', img: 'images/英雄与队长/英雄/Dr_Kavan.webp' },
+                    { name: '伊娃斯巴克上尉', img: 'images/英雄与队长/英雄/Cpt_Everspark.webp' },
+                    { name: '列兵布利特', img: 'images/英雄与队长/英雄/Pvt_Bullit.webp' },
+                    { name: '鲁德洛上尉', img: 'images/英雄与队长/英雄/cpt_ruddero.webp' }
+                ]},
+                { group: '精英中尉', items: [
+                    { name: '安娜·施林格尔中尉', img: 'images/英雄与队长/队长/Lt._Anna_Schlingel.webp' },
+                    { name: '林尼亚·弗里斯可达中尉', img: 'images/英雄与队长/队长/Lt._Linnea_Friskdahl.webp' }
+                ]},
+                { group: '中尉', items: [
+                    { name: '霍努中尉(步兵)', img: 'images/英雄与队长/队长/Lt._Honu.webp' },
+                    { name: '朱丽叶斯·马斯中尉(重机枪手)', img: 'images/英雄与队长/队长/Lt._Julius_Mass.webp' },
+                    { name: '罗伯托·法尔考中尉(火箭炮手)', img: 'images/英雄与队长/队长/Lt._Roberto_Falcao.webp' },
+                    { name: '纳凡菈女皇(土著勇士)', img: 'images/英雄与队长/队长/Queen_Nafanoua.webp' },
+                    { name: '40 式末日彩云(坦克)', img: 'images/英雄与队长/队长/TL-40_Doomfetti.webp' }
+                ]},
+                { group: '中士', items: [
+                    { name: '阿曼尼·卡帕塔中士(步兵)', img: 'images/英雄与队长/队长/Sgt._Amani_Kapata.webp' },
+                    { name: '安蒂·普卡斯中士(步兵)', img: 'images/英雄与队长/队长/Sgt._Antti_Pylk3Fs.webp' },
+                    { name: '托尔斯滕·比约尔森中士(重机枪手)', img: 'images/英雄与队长/队长/HeavyOfcMine.webp' },
+                    { name: '艾米莉·穆卡中士(火箭炮手)', img: 'images/英雄与队长/队长/ZookaOfcMortar.webp' },
+                    { name: '纱世·忍中士(火箭炮手)', img: 'images/英雄与队长/队长/ZookaOfcStealth.webp' },
+                    { name: '茱莉亚·维斯中士(火箭炮手)', img: 'images/英雄与队长/队长/Heavy_Fangirl.webp' },
+                    { name: '寇阿中士(土著勇士)', img: 'images/英雄与队长/队长/Sgt._Koa.webp' },
+                    { name: '26号集结点(坦克)', img: 'images/英雄与队长/队长/TS-26_Spawnpoint.webp' },
+                    { name: '凯马纳中士(医师)', img: 'images/英雄与队长/队长/Sgt._Kaimana.webp' },
+                    { name: '63号试制喷火蟹(烈焰战车)', img: 'images/英雄与队长/队长/SG-63_Firecrab.webp' },
+                    { name: '亚历山卓·瓜迪亚中士(迫击炮手)', img: 'images/英雄与队长/队长/bombofshield.webp' },
+                    { name: '朱塞佩·夏古拉中士(迫击炮手)', img: 'images/英雄与队长/队长/clustardier.webp' }
+                ]},
+                { group: '赛博中士', items: [
+                    { name: '002型智能机枪手(重机枪手)', img: 'images/英雄与队长/队长/HV-CMD-002.webp' },
+                    { name: '003型智能炮手(火箭炮手)', img: 'images/英雄与队长/队长/ZK-CMD-003.webp' },
+                    { name: '005型坦克领袖(坦克)', img: 'images/英雄与队长/队长/TN-CMD-005.webp' },
+                    { name: '007型智能投弹兵(投弹兵)', img: 'images/英雄与队长/队长/GR-CMD-007.webp' },
+                    { name: '010型智能先锋(极冻先锋)', img: 'images/英雄与队长/队长/CR-CMD-010.webp' },
+                    { name: '011型迫击炮队长(迫击炮手)', img: 'images/英雄与队长/队长/BM-CMD-011.webp' },
+                    { name: '012型机甲领袖(机甲)', img: 'images/英雄与队长/队长/MC-CMD-012.webp' },
+                    { name: '013型火箭无人机(火箭直升机)', img: 'images/英雄与队长/队长/RC-CMD-013.webp' }
+                ]},
+                { group: '旧·部队小队长', items: [
+                    { name: '火箭炮迷', img: 'images/英雄与队长/旧·部队小队长/HeavyOfcVolley.webp' },
+                    { name: '扫雷兵', img: 'images/英雄与队长/旧·部队小队长/HeavyOfcMine.webp' },
+                    { name: '肉盾', img: 'images/英雄与队长/旧·部队小队长/HeavyOfcTank.webp' },
+                    { name: '重机枪迷', img: 'images/英雄与队长/旧·部队小队长/Heavy_Fangirl.webp' },
+                    { name: '迫击火箭兵', img: 'images/英雄与队长/旧·部队小队长/ZookaOfcMortar.webp' },
+                    { name: '火箭炮忍者', img: 'images/英雄与队长/旧·部队小队长/ZookaOfcStealth.webp' },
+                    { name: '纵火炮手', img: 'images/英雄与队长/旧·部队小队长/BombaOfcFire.webp' },
+                    { name: '护盾炮手', img: 'images/英雄与队长/旧·部队小队长/bombofshield.webp' },
+                    { name: '集束炮手', img: 'images/英雄与队长/旧·部队小队长/clustardier.webp' }
+                ]}
+            ],
+            'gunboat': [
+                { group: '常驻战舰武器', items: [
+                    { name: '火炮', img: 'images/战舰武器/常驻战舰武器/Artillery_new.webp' },
+                    { name: '引导弹', img: 'images/战舰武器/常驻战舰武器/Flare.webp' },
+                    { name: '医疗包', img: 'images/战舰武器/常驻战舰武器/Medkit.webp' },
+                    { name: '震爆弹', img: 'images/战舰武器/常驻战舰武器/Shock_Bomb.webp' },
+                    { name: '多管火箭炮', img: 'images/战舰武器/常驻战舰武器/Barrage.webp' },
+                    { name: '烟雾弹', img: 'images/战舰武器/常驻战舰武器/SmokeScreen.webp' },
+                    { name: '机械小怪', img: 'images/战舰武器/常驻战舰武器/CrittersIcon.webp' }
+                ]},
+                { group: '临时战舰武器', items: [
+                    { name: '超级土著勇士', img: 'images/战舰武器/临时战舰武器/Super_Warrior.webp' },
+                    { name: '投放式炮塔', img: 'images/战舰武器/临时战舰武器/Deployable_Turret.webp' },
+                    { name: '加速血清', img: 'images/战舰武器/临时战舰武器/Speed_Serum.webp' },
+                    { name: '晶簇小怪', img: 'images/战舰武器/临时战舰武器/Crystal_Critters.webp' },
+                    { name: '冷冻炸弹', img: 'images/战舰武器/临时战舰武器/Cryobomb.webp' },
+                    { name: '远程遥控', img: 'images/战舰武器/临时战舰武器/Remote_Hack.webp' },
+                    { name: '微型震爆弹', img: 'images/战舰武器/临时战舰武器/Tiny_Shock.webp' },
+                    { name: '自爆小怪', img: 'images/战舰武器/临时战舰武器/Explosive_Drones.webp' },
+                    { name: '水晶护盾发射器', img: 'images/战舰武器/临时战舰武器/Crystal_Shield_Projector.webp' },
+                    { name: '复苏水晶', img: 'images/战舰武器/临时战舰武器/Resurrection_Bomb.webp' }
+                ]}
+            ],
+            'support': [
+                { group: null, items: [
+                    { name: '船舰', img: 'images/支持类建筑/GB22.webp' },
+                    { name: '登陆艇', img: 'images/支持类建筑/LC22.webp' },
+                    { name: '雷达', img: 'images/支持类建筑/Radar6.webp' },
+                    { name: '研究所', img: 'images/支持类建筑/Armory22.webp' },
+                    { name: '武器实验室', img: 'images/支持类建筑/WeaponLab5.webp' },
+                    { name: '原型工厂', img: 'images/支持类建筑/UPGRADE PROTO TROOP WORKSHOP.webp' },
+                    { name: '神庙', img: 'images/支持类建筑/Sculptor5.webp' },
+                    { name: '雕刻工坊', img: 'images/支持类建筑/Engrave.webp' },
+                    { name: '神像仓库', img: 'images/支持类建筑/StatueStorage5.webp' },
+                    { name: '潜水艇', img: 'images/支持类建筑/Submarine.webp' },
+                    { name: '英雄小屋子', img: 'images/支持类建筑/HeroHut0.webp' },
+                    { name: '神秘纪念碑', img: 'images/支持类建筑/MysticalMonument1.webp' }
+                ]}
+            ],
+            'economy': [
+                { group: null, items: [
+                    { name: '民房', img: 'images/经济类建筑/Residence10.webp' },
+                    { name: '金库', img: 'images/经济类建筑/GoldStorage10.webp' },
+                    { name: '锯木厂', img: 'images/经济类建筑/Sawmill9.webp' },
+                    { name: '木材库', img: 'images/经济类建筑/WoodStorage10.webp' },
+                    { name: '采石场', img: 'images/经济类建筑/Quarry5.webp' },
+                    { name: '石材库', img: 'images/经济类建筑/StoneStorage10.webp' },
+                    { name: '铁矿厂', img: 'images/经济类建筑/IronMine9.webp' },
+                    { name: '钢材库', img: 'images/经济类建筑/IronStorage8.webp' },
+                    { name: '保险库', img: 'images/经济类建筑/Vault15.webp' }
+                ]}
+            ],
+            'events': [
+                { group: null, items: [
+                    { name: '活动表', img: 'images/重要事件/Stopwatch.webp' },
+                    { name: '赛季战令', img: 'images/重要事件/Pass_Artillery.webp' },
+                    { name: '签到奖励', img: 'images/重要事件/Upgrade.webp' },
+                    { name: '哈默曼中尉基地', img: 'images/重要事件/Hammerman.webp' },
+                    { name: '哈莫曼反击', img: 'images/重要事件/Hammerman.webp' },
+                    { name: '恐怖博士(小)', img: 'images/重要事件/Terror4.webp' },
+                    { name: '恐怖博士(大)', img: 'images/重要事件/Terror4.webp' },
+                    { name: '战争工厂', img: 'images/重要事件/Colonel_Gearheart.webp' },
+                    { name: '克隆岛', img: 'images/重要事件/Hammerman.webp' },
+                    { name: '巨型螃蟹', img: 'images/重要事件/MegaCrab.webp' },
+                    { name: '螃蟹记录', img: 'images/重要事件/MegaCrab.webp' },
+                    { name: '超级海龟', img: 'images/重要事件/MegaCrab.webp' },
+                    { name: '航母', img: 'images/重要事件/Warship_Icon.webp' },
+                    { name: '声纳行动', img: 'images/重要事件/Submarine_size_2.webp' }
+                ]}
+            ],
+            'others': [
+                { group: null, items: [
+                    { name: '装饰', img: 'images/其他/BeachmasTree.webp' },
+                    { name: '障碍物', img: 'images/其他/YoungMangrove.webp' },
+                    { name: '速成班', img: 'images/其他/scb.webp' },
+                    { name: '训练场', img: 'images/其他/0.webp' },
+                    { name: '段位等级', img: 'images/其他/Medal.webp' },
+                    { name: '镀金等级', img: 'images/其他/9.webp' },
+                    { name: '等级经验', img: 'images/其他/0.webp' },
+                    { name: '成就系统', img: 'images/其他/Achievements3.webp' },
+                    { name: '皮肤', img: 'images/其他/Select_Skin_Icon.webp' },
+                    { name: '神像数据', img: 'images/其他/DarkGBEMc.webp' },
+                    { name: '特遣队任务数据', img: 'images/其他/Fp_icon_med.webp' },
+                    { name: '消灭部队钻石奖励', img: 'images/其他/Diamond.webp' },
+                    { name: '单机开图', img: 'images/其他/HQ_Icon.webp' },
+                    { name: '省时卷', img: 'images/其他/TimeSaver.webp' },
+                    { name: '材料介绍', img: 'images/其他/Icon_artifact_power_stone.webp' },
+                    { name: '角色', img: 'images/其他/Steve.webp' },
+                    { name: '资源岛', img: 'images/其他/Sub.webp' },
+                    { name: '自由村', img: 'images/其他/Village.webp' },
+                    { name: '水晶掉落', img: 'images/其他/Icon_artifact_epic_purple.webp' },
+                    { name: '部族', img: 'images/其他/Tribes.webp' },
+                    { name: '月卡', img: 'images/其他/yueka.webp' },
+                    { name: '未分类', img: 'images/其他/logo_1.webp' },
+                    { name: '音频', img: 'images/其他/Blackguard_Symbol.webp' },
+                    { name: '游戏音频', img: 'images/其他/Blackguard_Symbol.webp' }
+                ]}
+            ]
+        };
+
+        let isMobile = window.innerWidth < 768;
+        let sidebarOpen = !isMobile;
+        let currentActiveId = 'hq';
+        let currentActiveGroup = null;
+
+        const navList = document.getElementById('nav-list');
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('toggle-sidebar');
+        const currentTitle = document.getElementById('current-category-title');
+        const breadcrumbCurrent = document.getElementById('breadcrumb-current');
+        const subNavContainer = document.getElementById('sub-nav');
+        const dataContainer = document.getElementById('data-container');
+        const mobileOverlay = document.getElementById('mobile-overlay');
+        const searchInput = document.getElementById('search-input');
+
+        function initNav() {
+            categories.forEach(category => {
+                const btn = document.createElement('button');
+                btn.className = `nav-item ${category.id === currentActiveId ? 'active' : ''}`;
+                btn.onclick = () => switchCategory(category);
+                btn.innerHTML = `<span class="nav-icon">${category.icon}</span> <span>${category.name}</span>`;
+                navList.appendChild(btn);
+            });
+            updateSidebarState();
+            switchCategory(categories[0]); 
+        }
+
+        function switchCategory(category) {
+            currentActiveId = category.id;
+            searchInput.value = ''; 
+            
+            const items = navList.querySelectorAll('.nav-item');
+            items.forEach((item, index) => {
+                if (categories[index].id === category.id) item.classList.add('active');
+                else item.classList.remove('active');
+            });
+
+            currentTitle.textContent = category.name;
+            breadcrumbCurrent.textContent = category.name;
+            
+            const categoryData = dbData[category.id];
+            currentActiveGroup = categoryData[0] ? categoryData[0].group : null;
+
+            renderSubNav(category);
+            renderDataGrid(category.id, currentActiveGroup);
+
+            if (window.innerWidth < 768) {
+                sidebarOpen = false;
+                updateSidebarState();
+            }
+        }
+
+        function renderSubNav(category) {
+            subNavContainer.innerHTML = '';
+            const categoryData = dbData[category.id];
+            
+            if (categoryData.length <= 1 && !categoryData[0].group) {
+                subNavContainer.style.display = 'none';
+                return;
+            }
+
+            subNavContainer.style.display = 'flex';
+            categoryData.forEach(section => {
+                if (section.group) {
+                    const btn = document.createElement('button');
+                    btn.className = `sub-nav-btn ${section.group === currentActiveGroup ? 'active' : ''}`;
+                    btn.textContent = section.group;
+                    btn.onclick = () => {
+                        currentActiveGroup = section.group;
+                        Array.from(subNavContainer.children).forEach(child => child.classList.remove('active'));
+                        btn.classList.add('active');
+                        renderDataGrid(category.id, currentActiveGroup);
+                    };
+                    subNavContainer.appendChild(btn);
+                }
+            });
+        }
+
+        function renderDataGrid(categoryId, groupName) {
+            dataContainer.innerHTML = '';
+            const categoryData = dbData[categoryId];
+
+            if (!categoryData || categoryData.length === 0) return;
+
+            const grid = document.createElement('div');
+            grid.className = 'grid-container';
+
+            if (groupName === '全部') {
+                categoryData.forEach(section => {
+                    if (section.group !== '全部') {
+                        section.items.forEach(itemObj => {
+                            grid.appendChild(createCardHTML(itemObj));
+                        });
+                    }
+                });
+            } else {
+                const section = categoryData.find(s => s.group === groupName) || categoryData[0];
+                if (!section || !section.items) return;
+
+                section.items.forEach(itemObj => {
+                    grid.appendChild(createCardHTML(itemObj));
+                });
+            }
+            
+            dataContainer.appendChild(grid);
+        }
+
+        // 修改后的卡片生成逻辑：完美兼容有图和无图状态
+        function createCardHTML(itemObj) {
+            const card = document.createElement('div');
+            card.className = 'data-card';
+            
+            // 智能判断：如果填写了图片链接，则显示图片；如果为空，则默认显示原本的 SVG 图标
+            let imageHtml = '';
+            if (itemObj.img && itemObj.img.trim() !== '') {
+                // object-fit: contain 会让图片完美自动缩放，无需手动调大小
+                imageHtml = `<img src="${itemObj.img}" alt="${itemObj.name}" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none;">`;
+            } else {
+                imageHtml = `<svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`;
+            }
+
+            card.innerHTML = `
+                <div class="card-img-box" style="padding: 6px;">
+                    ${imageHtml}
+                </div>
+                <div class="card-title" title="${itemObj.name}">${itemObj.name}</div>
+            `;
+            return card;
+        }
+
+        // 修改后的搜索功能逻辑
+        searchInput.addEventListener('input', (e) => {
+            const keyword = e.target.value.trim().toLowerCase();
+            if (!keyword) {
+                switchCategory(categories.find(c => c.id === currentActiveId));
+                return;
+            }
+
+            currentTitle.textContent = "搜索结果";
+            breadcrumbCurrent.textContent = `包含 "${keyword}" 的数据`;
+            subNavContainer.style.display = 'none'; 
+            dataContainer.innerHTML = '';
+            
+            const grid = document.createElement('div');
+            grid.className = 'grid-container';
+            let resultCount = 0;
+
+            for (const catId in dbData) {
+                dbData[catId].forEach(section => {
+                    if(section.group === '全部' && section.items.length === 0) return;
+
+                    section.items.forEach(itemObj => {
+                        // 匹配对象的 name 属性
+                        if (itemObj.name.toLowerCase().includes(keyword)) {
+                            grid.appendChild(createCardHTML(itemObj));
+                            resultCount++;
+                        }
+                    });
+                });
+            }
+
+            if (resultCount === 0) {
+                dataContainer.innerHTML = `<div style="text-align:center; padding: 40px; color: #9ca3af;">未找到与 "${keyword}" 相关的结果</div>`;
+            } else {
+                dataContainer.appendChild(grid);
+            }
+        });
+
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            updateSidebarState();
+        }
+
+        function updateSidebarState() {
+            const isMob = window.innerWidth < 768; 
+            if (sidebarOpen) {
+                sidebar.classList.remove('sidebar-hidden');
+                if (isMob) mobileOverlay.classList.add('show');
+            } else {
+                sidebar.classList.add('sidebar-hidden');
+                if (isMob) mobileOverlay.classList.remove('show');
+            }
+        }
+
+        toggleBtn.addEventListener('click', toggleSidebar);
+        mobileOverlay.addEventListener('click', () => {
+            sidebarOpen = false;
+            updateSidebarState();
+        });
+
+        window.addEventListener('resize', () => {
+            const isMob = window.innerWidth < 768;
+            if (isMob && sidebarOpen) {
+                 sidebarOpen = false;
+                 updateSidebarState();
+            } else if (!isMob && !sidebarOpen) {
+                 sidebarOpen = true;
+                 updateSidebarState();
+            }
+        });
+
+        initNav();
+    </script>
+</body>
+</html>
