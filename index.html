@@ -98,22 +98,41 @@
         }
         .card-title { font-size: 0.85rem; font-weight: bold; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* 详情页面板 */
+        /* ================= 优化后的详情页面板 ================= */
         #detail-container { display: none; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
         .detail-header-card {
-            display: flex; align-items: flex-start; gap: 24px; background: var(--glass-bg); padding: 24px;
+            display: flex; flex-direction: column; background: var(--glass-bg); padding: 24px;
             border-radius: 20px; border: 1px solid var(--glass-border); margin-bottom: 24px;
         }
-        .detail-icon-box {
-            width: 100px; height: 100px; border-radius: 16px; background: rgba(255,255,255,0.8);
-            display: flex; align-items: center; justify-content: center; padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); flex-shrink: 0;
+        /* 图文区域（分离网格） */
+        .detail-header-top {
+            display: flex; align-items: center; gap: 24px; width: 100%;
         }
+        .detail-icon-box {
+            width: 120px; height: 120px; border-radius: 20px; background: rgba(255,255,255,0.9);
+            display: flex; align-items: center; justify-content: center; padding: 4px; /* 缩减padding */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); flex-shrink: 0; overflow: hidden;
+        }
+        .detail-icon-box img {
+            width: 100%; height: 100%; object-fit: contain; transform: scale(1.15); /* 放大兵种，更饱满 */
+        }
+        .detail-info { flex: 1; }
         .detail-title { font-size: 1.8rem; font-weight: bold; color: #111827; margin-bottom: 8px; }
-        .base-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 16px; }
-        .stat-item { background: rgba(255,255,255,0.5); padding: 12px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.7); }
-        .stat-val { font-size: 1.1rem; font-weight: bold; color: var(--primary); margin-bottom: 4px; }
-        .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+        .detail-desc { color: #4b5563; font-size: 0.95rem; line-height: 1.6; }
+
+        /* 统一单行对齐的属性网格 - 电脑端 */
+        .base-stats-grid { 
+            display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 12px; margin-top: 24px; width: 100%; 
+            padding-bottom: 4px; /* 预留滚动条呼吸空间 */
+        }
+        .stat-item { 
+            flex: 1; min-width: 110px; background: rgba(255,255,255,0.6); padding: 14px 10px; 
+            border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.8); 
+        }
+        .stat-val { font-size: 1.15rem; font-weight: bold; color: var(--primary); margin-bottom: 6px; white-space: nowrap; }
+        .stat-label { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; }
 
         /* 计算器区域 */
         .calculator-panel {
@@ -162,7 +181,20 @@
             .header-title { display: none; }
             .search-box { width: 160px; }
             .content-area { padding: 16px 16px 80px 16px; } 
-            .detail-header-card { flex-direction: column; align-items: center; text-align: center; }
+            
+            /* 手机端详情页布局调整：恢复居中显示 */
+            .detail-header-top { flex-direction: column; text-align: center; gap: 16px; align-items: center; }
+            .detail-icon-box { width: 100px; height: 100px; }
+            
+            /* 手机端：属性网格恢复成原本的两列布局，不再单行横向滚动 */
+            .base-stats-grid { 
+                display: grid; 
+                grid-template-columns: repeat(2, 1fr); 
+                gap: 12px; 
+                overflow-x: visible; 
+                margin-top: 16px;
+            }
+            .stat-item { flex: unset; min-width: 0; padding: 12px 8px; }
         }
     </style>
 </head>
@@ -186,8 +218,8 @@
                 <div id="current-category-title" class="header-title">大本营</div>
             </div>
             <div class="search-box">
-                <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                <input type="text" id="search-input" class="search-input" placeholder="搜索数据...">
+                <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z"/></svg>
+                <input type="text" id="search-input" class="search-input" placeholder="搜索...">
             </div>
         </header>
 
@@ -240,7 +272,7 @@
                     { name: '资源岛大本营', img: 'images/大本营/Sub.webp' },
                     { name: '能量中心', img: 'images/大本营/Powercore.webp' },
                     { name: '超级核心', img: 'images/大本营/MegaCore.webp' },
-                    { name: '战争工厂', img: '' },
+                    { name: '战争工厂', img: 'images/大本营/GearheartHQ.webp' },
                     { name: '引擎室', img: 'images/大本营/Engine_Room.webp' }
                 ]}
             ],
@@ -472,7 +504,7 @@
                 { group: null, items: [
                     { name: '船舰', img: 'images/支持类建筑/GB22.webp' },
                     { name: '登陆艇', img: 'images/支持类建筑/LC22.webp' },
-                    { name: '雷达', img: 'images/支持类建筑/Radar6.webp' },
+                    { name: '雷达', img: 'images/支持类建筑/Radar9.webp' },
                     { name: '研究所', img: 'images/支持类建筑/Armory22.webp' },
                     { name: '武器实验室', img: 'images/支持类建筑/WeaponLab5.webp' },
                     { name: '原型工厂', img: 'images/支持类建筑/UPGRADE PROTO TROOP WORKSHOP.webp' },
@@ -480,8 +512,8 @@
                     { name: '雕刻工坊', img: 'images/支持类建筑/Engrave.webp' },
                     { name: '神像仓库', img: 'images/支持类建筑/StatueStorage5.webp' },
                     { name: '潜水艇', img: 'images/支持类建筑/Submarine.webp' },
-                    { name: '英雄小屋子', img: 'images/支持类建筑/HeroHut0.webp' },
-                    { name: '神秘纪念碑', img: 'images/支持类建筑/MysticalMonument1.webp' }
+                    { name: '英雄小屋', img: 'images/支持类建筑/HeroHut1.webp' },
+                    { name: '神秘纪念碑', img: 'images/支持类建筑/MysticalMonument9.webp' }
                 ]}
             ],
             'economy': [
@@ -564,8 +596,44 @@
         const detailContainer = document.getElementById('detail-container');
         const detailRenderArea = document.getElementById('detail-render-area');
 
+        // 处理数据：添加“全部队长”、“全部装置”及记录原始路径组名
+        function processData() {
+            // 记录 originalGroup 保证卡片点击时路径正常
+            for (const catId in dbData) {
+                dbData[catId].forEach(section => {
+                    section.items.forEach(item => {
+                        item.originalGroup = section.group;
+                    });
+                });
+            }
+
+            // 处理“全部队长”
+            const heroesCommanders = dbData['heroes_commanders'];
+            if (heroesCommanders) {
+                let allCommandersItems = [];
+                for (let i = 1; i < heroesCommanders.length; i++) {
+                    allCommandersItems = allCommandersItems.concat(heroesCommanders[i].items);
+                }
+                // 插入在索引1，紧随“英雄”之后
+                heroesCommanders.splice(1, 0, { group: '全部队长', items: allCommandersItems, isVirtual: true });
+            }
+
+            // 处理“全部装置”
+            const devices = dbData['devices'];
+            if (devices) {
+                let allDevicesItems = [];
+                for (let i = 0; i < devices.length; i++) {
+                    allDevicesItems = allDevicesItems.concat(devices[i].items);
+                }
+                // 插入在最前方
+                devices.unshift({ group: '全部', items: allDevicesItems, isVirtual: true });
+            }
+        }
+
         // 初始化加载
         function initApp() {
+            processData(); // 处理聚合分类数据
+
             // 初始化侧边栏默认状态
             applySidebarState();
             
@@ -577,6 +645,61 @@
                 navList.appendChild(btn);
             });
             switchCategory(categories[0]); 
+        }
+
+        // --- 搜索功能逻辑 ---
+        const searchInput = document.getElementById('search-input');
+        searchInput.addEventListener('input', (e) => {
+            const keyword = e.target.value.trim().toLowerCase();
+            
+            // 搜索时首先关闭详情页视图
+            if (detailContainer.style.display === 'block') {
+                detailContainer.style.display = 'none';
+                document.getElementById('data-container').style.display = 'block';
+            }
+
+            if (keyword) {
+                doSearch(keyword);
+            } else {
+                // 清空搜索框时，恢复当前分类显示
+                const cat = categories.find(c => c.id === currentActiveId);
+                renderSubNav(cat);
+                renderDataGrid(currentActiveId, currentActiveGroup);
+                currentTitle.textContent = cat.name;
+                document.getElementById('breadcrumb-current').textContent = cat.name;
+            }
+        });
+
+        function doSearch(keyword) {
+            subNavContainer.style.display = 'none';
+            currentTitle.textContent = "搜索结果";
+            document.getElementById('breadcrumb-current').textContent = `搜索 "${keyword}"`;
+            
+            dataContainer.innerHTML = '';
+            const grid = document.createElement('div');
+            grid.className = 'grid-container';
+            
+            let resultCount = 0;
+            
+            // 遍历所有数据查找匹配项
+            for (const catId in dbData) {
+                const catName = categories.find(c => c.id === catId).name;
+                dbData[catId].forEach(section => {
+                    if (section.isVirtual) return; // 跳过虚拟拼接组，避免结果重复
+                    section.items.forEach(itemObj => {
+                        if (itemObj.name.toLowerCase().includes(keyword)) {
+                            grid.appendChild(createCardHTML(itemObj, catName, itemObj.originalGroup));
+                            resultCount++;
+                        }
+                    });
+                });
+            }
+            
+            if (resultCount === 0) {
+                dataContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-muted);">没有找到匹配的数据卡片</div>';
+            } else {
+                dataContainer.appendChild(grid);
+            }
         }
 
         // --- 侧边栏交互逻辑 ---
@@ -616,6 +739,7 @@
 
         // --- 分类切换逻辑 ---
         function switchCategory(category) {
+            document.getElementById('search-input').value = ''; // 切换分类时清空搜索
             closeDetailView();
             currentActiveId = category.id;
             document.querySelectorAll('.nav-item').forEach((item, idx) => {
@@ -623,7 +747,7 @@
                 else item.classList.remove('active');
             });
             currentTitle.textContent = category.name;
-            breadcrumbCurrent.textContent = category.name;
+            document.getElementById('breadcrumb-current').textContent = category.name;
             const categoryData = dbData[category.id] || [];
             currentActiveGroup = categoryData[0] ? categoryData[0].group : null;
             renderSubNav(category);
@@ -672,12 +796,15 @@
             if (!section || !section.items) return;
 
             section.items.forEach(itemObj => {
-                grid.appendChild(createCardHTML(itemObj, catName, section.group));
+                grid.appendChild(createCardHTML(itemObj, catName, groupName));
             });
             dataContainer.appendChild(grid);
         }
 
         function createCardHTML(itemObj, catName, groupName) {
+            // 优先使用记录的原始路径组，确保搜索结果或全部集合中的卡片能加载到正确的文件
+            const actualGroup = itemObj.originalGroup !== undefined ? itemObj.originalGroup : groupName;
+            
             const card = document.createElement('div');
             card.className = 'data-card';
             let imageHtml = itemObj.img ? `<img src="${itemObj.img}" alt="${itemObj.name}" style="width: 100%; height: 100%; object-fit: contain;">` 
@@ -685,7 +812,7 @@
             card.innerHTML = `<div class="card-img-box" style="padding: 6px;">${imageHtml}</div><div class="card-title">${itemObj.name}</div>`;
             
             card.onclick = () => {
-                const groupPath = groupName ? `${groupName}/` : '';
+                const groupPath = actualGroup ? `${actualGroup}/` : '';
                 const scriptPath = `数据/${catName}/${groupPath}${itemObj.name}.js`;
                 loadDataAndOpen(itemObj.name, scriptPath);
             };
@@ -748,69 +875,117 @@
         function closeDetailView() {
             detailContainer.style.display = 'none';
             document.getElementById('data-container').style.display = 'block';
-            if (subNavContainer.innerHTML !== '') subNavContainer.style.display = 'flex';
             
-            const catName = categories.find(c => c.id === currentActiveId).name;
-            document.getElementById('breadcrumb-current').textContent = catName;
-            currentTitle.textContent = catName;
+            const keyword = document.getElementById('search-input').value.trim();
+            if (keyword) {
+                // 如果是从搜索结果点进来的，恢复搜索列表状态
+                subNavContainer.style.display = 'none';
+                currentTitle.textContent = "搜索结果";
+                document.getElementById('breadcrumb-current').textContent = `搜索 "${keyword}"`;
+            } else {
+                // 正常分类视图的恢复逻辑
+                if (subNavContainer.innerHTML !== '') subNavContainer.style.display = 'flex';
+                const catName = categories.find(c => c.id === currentActiveId).name;
+                document.getElementById('breadcrumb-current').textContent = catName;
+                currentTitle.textContent = catName;
+            }
         }
 
         function formatNum(num) {
-            return (num === '/' || isNaN(num)) ? '<span class="val-none">/</span>' : Number(num).toLocaleString();
+            return (num === '/' || num === undefined || num === null || isNaN(num)) ? '<span class="val-none">/</span>' : Number(num).toLocaleString();
         }
 
+        // ================= 修改核心排版代码 =================
         function renderDetailUI(data) {
+            const isHQ = data.name === '主基地大本营'; // 核心：判断是否为主基地大本营
+            
             let html = `
                 <div class="detail-header-card">
-                    <div class="detail-icon-box">
-                        <img src="${data.img}" style="max-width:100%; max-height:100%;">
-                    </div>
-                    <div>
-                        <div class="detail-title">${data.name}</div>
-                        <p style="color:#4b5563; font-size:0.95rem; line-height:1.5;">${data.desc}</p>
-                        <div class="base-stats-grid">
-                            ${data.baseStats.map(stat => `
-                                <div class="stat-item">
-                                    <div class="stat-val">${stat.val}</div>
-                                    <div class="stat-label">${stat.label}</div>
-                                </div>
-                            `).join('')}
+                    <!-- 上半部分：图片与文案 -->
+                    <div class="detail-header-top">
+                        <div class="detail-icon-box">
+                            <img src="${data.img}" alt="${data.name}">
                         </div>
+                        <div class="detail-info">
+                            <div class="detail-title">${data.name}</div>
+                            <p class="detail-desc">${data.desc}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 下半部分：占据整行宽度的基础属性网格 -->
+                    <div class="base-stats-grid no-scrollbar">
+                        ${data.baseStats.map(stat => `
+                            <div class="stat-item">
+                                <div class="stat-val">${stat.val}</div>
+                                <div class="stat-label">${stat.label}</div>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
 
+                ${(data.hideHpCalc && data.hideDmgCalc) ? '' : `
                 <div class="calculator-panel">
                     <div style="font-weight:600; color:#1f2937;">雕像加成计算器：</div>
+                    ${!data.hideHpCalc ? `
                     <div class="calc-group">
                         <label style="font-size:0.9rem; color:#4b5563;">生命加成%</label>
                         <input type="number" id="hp-input" class="calc-input" placeholder="0">
                         <button class="calc-btn" onclick="applyBoost('hp')">计算</button>
                     </div>
+                    ` : ''}
+                    ${(!isHQ && !data.hideDmgCalc) ? `
                     <div class="calc-group">
                         <label style="font-size:0.9rem; color:#4b5563;">攻击加成%</label>
                         <input type="number" id="dmg-input" class="calc-input" placeholder="0">
                         <button class="calc-btn" onclick="applyBoost('dmg')">计算</button>
                     </div>
+                    ` : ''}
                     <button class="calc-btn reset" onclick="resetBoost()">重置所有</button>
                 </div>
+                `}
 
                 <h3 style="margin-bottom:16px; color:#1f2937;">升级数据表</h3>
                 <div class="table-container">
                     <table class="data-table">
+                        ${isHQ ? `
                         <thead>
                             <tr>
-                                <th><img src="images/基础/Level.webp">等级</th>
-                                <th><img src="images/基础/Hitpoint.webp">生命值</th>
-                                <th><img src="images/基础/Damage.webp">伤害</th>
-                                <th><img src="images/基础/Gold.webp">训练成本</th>
-                                <th><img src="images/基础/Gold.webp">升级成本</th>
-                                <th><img src="images/基础/Menu_icon_research.webp">研究所</th>
-                                <th><img src="images/基础/Stopwatch.webp">升级时间</th>
-                                <th><img src="images/基础/Diamond.webp">秒钻花费</th>
-                                <th><img src="images/基础/TimeSaver.webp">省时卷</th>
-                                <th><img src="images/基础/Icon_info_xp.webp">经验</th>
+                                <th rowspan="2" style="border-right:1px solid rgba(0,0,0,0.05);"><img src="images/大本营/Level.webp" onerror="this.src='images/基础/Level.webp'">等级</th>
+                                <th rowspan="2" style="border-right:1px solid rgba(0,0,0,0.05);"><img src="images/大本营/Hitpoint.webp" onerror="this.src='images/基础/Hitpoint.webp'">生命值</th>
+                                <th colspan="3" style="border-bottom:1px solid rgba(0,0,0,0.05); border-right:1px solid rgba(0,0,0,0.05);">升级费用</th>
+                                <th colspan="4" style="border-bottom:1px solid rgba(0,0,0,0.05); border-right:1px solid rgba(0,0,0,0.05);">存储容量</th>
+                                <th rowspan="2" style="border-right:1px solid rgba(0,0,0,0.05);"><img src="images/大本营/Stopwatch.webp" onerror="this.src='images/基础/Stopwatch.webp'">升级时间</th>
+                                <th rowspan="2" style="border-right:1px solid rgba(0,0,0,0.05);"><img src="images/大本营/Diamond.webp" onerror="this.src='images/基础/Diamond.webp'">秒钻花费</th>
+                                <th rowspan="2" style="border-right:1px solid rgba(0,0,0,0.05);"><img src="images/大本营/TimeSaver.webp" onerror="this.src='images/基础/TimeSaver.webp'">省时卷</th>
+                                <th rowspan="2" style="border-right:1px solid rgba(0,0,0,0.05);"><img src="images/大本营/Icon_info_xp.webp" onerror="this.src='images/基础/Icon_info_xp.webp'">所需等级</th>
+                                <th rowspan="2"><img src="images/大本营/Icon_info_xp.webp" onerror="this.src='images/基础/Icon_info_xp.webp'">经验</th>
+                            </tr>
+                            <tr>
+                                <th><img src="images/大本营/Wood.webp" onerror="this.src='images/基础/Wood.webp'">木材</th>
+                                <th><img src="images/大本营/Stone.webp" onerror="this.src='images/基础/Stone.webp'">石材</th>
+                                <th style="border-right:1px solid rgba(0,0,0,0.05);"><img src="images/大本营/Iron.webp" onerror="this.src='images/基础/Iron.webp'">钢材</th>
+                                <th><img src="images/大本营/Gold.webp" onerror="this.src='images/基础/Gold.webp'">黄金</th>
+                                <th><img src="images/大本营/Wood.webp" onerror="this.src='images/基础/Wood.webp'">木材</th>
+                                <th><img src="images/大本营/Stone.webp" onerror="this.src='images/基础/Stone.webp'">石材</th>
+                                <th style="border-right:1px solid rgba(0,0,0,0.05);"><img src="images/大本营/Iron.webp" onerror="this.src='images/基础/Iron.webp'">钢材</th>
                             </tr>
                         </thead>
+                        ` : (data.tableHeadersHtml ? data.tableHeadersHtml : `
+                        <thead>
+                            <tr>
+                                <th><img src="images/大本营/Level.webp" onerror="this.src='images/基础/Level.webp'">等级</th>
+                                <th><img src="images/大本营/Hitpoint.webp" onerror="this.src='images/基础/Hitpoint.webp'">生命值</th>
+                                <th><img src="images/大本营/Damage.webp" onerror="this.src='images/基础/Damage.webp'">伤害</th>
+                                <th><img src="images/大本营/Gold.webp" onerror="this.src='images/基础/Gold.webp'">训练成本</th>
+                                <th><img src="images/大本营/Gold.webp" onerror="this.src='images/基础/Gold.webp'">升级成本</th>
+                                <th><img src="images/大本营/Menu_icon_research.webp" onerror="this.src='images/基础/Menu_icon_research.webp'">研究所</th>
+                                <th><img src="images/大本营/Stopwatch.webp" onerror="this.src='images/基础/Stopwatch.webp'">升级时间</th>
+                                <th><img src="images/大本营/Diamond.webp" onerror="this.src='images/基础/Diamond.webp'">秒钻花费</th>
+                                <th><img src="images/大本营/TimeSaver.webp" onerror="this.src='images/基础/TimeSaver.webp'">省时卷</th>
+                                <th><img src="images/大本营/Icon_info_xp.webp" onerror="this.src='images/基础/Icon_info_xp.webp'">经验</th>
+                            </tr>
+                        </thead>
+                        `)}
                         <tbody id="upgrade-tbody"></tbody>
                     </table>
                 </div>
@@ -823,11 +998,11 @@
                     <table class="data-table" style="min-width:500px;">
                         <thead>
                             <tr>
-                                <th><img src="images/基础/Level.webp">序号</th>
-                                <th><img src="images/基础/Level.webp">航母等级</th>
-                                <th><img src="images/基础/TroopCapacity.webp">储存数量</th>
-                                <th><img src="images/基础/Icon_Upgrade_Token.webp">升级令牌</th>
-                                <th><img src="images/基础/Icon_info_xp.webp">科技等级</th>
+                                <th><img src="images/大本营/Level.webp" onerror="this.src='images/基础/Level.webp'">序号</th>
+                                <th><img src="images/大本营/Level.webp" onerror="this.src='images/基础/Level.webp'">航母等级</th>
+                                <th><img src="images/大本营/TroopCapacity.webp" onerror="this.src='images/基础/TroopCapacity.webp'">储存数量</th>
+                                <th><img src="images/大本营/Icon_Upgrade_Token.webp" onerror="this.src='images/基础/Icon_Upgrade_Token.webp'">升级令牌</th>
+                                <th><img src="images/大本营/Icon_info_xp.webp" onerror="this.src='images/基础/Icon_info_xp.webp'">科技等级</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -844,6 +1019,65 @@
                     </table>
                 </div>`;
             }
+
+            // 大本营独有的外观图片与建筑解锁版块
+            if (isHQ) {
+                if (data.hqImages) {
+                    html += `
+                    <h3 style="margin-top:24px; margin-bottom:16px; color:#1f2937;">司令部外观图片</h3>
+                    <div class="grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 16px;">
+                        ${data.hqImages.map(imgObj => `
+                            <div class="data-card" style="padding:12px; background:rgba(255,255,255,0.7); border:1px solid rgba(0,0,0,0.05); border-radius:12px;">
+                                <div class="card-img-box" style="height:80px; margin-bottom:8px; display:flex; justify-content:center; align-items:center;">
+                                    <img src="${imgObj.img}" alt="${imgObj.name}" style="max-width:100%; max-height:100%; object-fit:contain;">
+                                </div>
+                                <div class="card-title" style="font-size:0.85rem; font-weight:600; white-space:normal; line-height:1.2;">${imgObj.name}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    `;
+                }
+
+                if (data.unlocks) {
+                    html += `
+                    <h3 style="margin-top:32px; margin-bottom:16px; color:#1f2937;">各等级建筑解锁清单</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:100px; font-size:0.9rem;">司令部等级</th>
+                                    <th style="text-align:left; padding-left:16px; font-size:0.9rem;">解锁内容</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.unlocks.map(ul => `
+                                    <tr>
+                                        <td style="font-weight:bold; color:var(--primary); font-size:1.2rem; border-right:1px solid rgba(0,0,0,0.03);">${ul.lv}</td>
+                                        <td style="text-align:left; padding:16px;">
+                                            <div style="display:flex; flex-wrap:wrap; gap:12px;">
+                                                ${ul.items.map(item => `
+                                                    <div style="display:flex; flex-direction:column; align-items:center; width:72px;">
+                                                        <div style="width:48px; height:48px; background:rgba(255,255,255,0.9); border-radius:10px; display:flex; justify-content:center; align-items:center; margin-bottom:6px; box-shadow:0 2px 6px rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.03);">
+                                                            <img src="${item.img}" style="max-width:36px; max-height:36px; object-fit:contain;">
+                                                        </div>
+                                                        <span style="font-size:0.75rem; color:#4b5563; text-align:center; line-height:1.2;">${item.name}</span>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    `;
+                }
+            }
+            
+            // 插入自定义附属内容（如备用表格、说明文字等）
+            if (data.extraHtml) {
+                html += data.extraHtml;
+            }
             
             detailRenderArea.innerHTML = html;
             renderUpgradeTable(originalLevelData);
@@ -852,39 +1086,85 @@
         function renderUpgradeTable(dataArray, hlType = null) {
             const tbody = document.getElementById('upgrade-tbody');
             if(!tbody) return;
-            tbody.innerHTML = dataArray.map(lv => `
-                <tr>
-                    <td style="font-weight:bold;">${lv.lv}</td>
-                    <td class="${hlType === 'hp' ? 'calc-highlight-hp' : ''}">${formatNum(lv.hp)}</td>
-                    <td class="${hlType === 'dmg' ? 'calc-highlight-dmg' : ''}">${formatNum(lv.dmg)}</td>
-                    <td>${formatNum(lv.train)}</td>
-                    <td style="color:#ca8a04;">${formatNum(lv.upg)}</td>
-                    <td>${formatNum(lv.mirc)}</td>
-                    <td>${formatNum(lv.time)}</td>
-                    <td>${formatNum(lv.diamond)}</td>
-                    <td>${formatNum(lv.ticket)}</td>
-                    <td style="color:var(--primary);">${formatNum(lv.exp)}</td>
-                </tr>
-            `).join('');
+            
+            const currentName = document.getElementById('current-category-title').textContent;
+            const data = window.GameDataDB[currentName];
+            const isHQ = (data?.name === '主基地大本营') || (currentName === '主基地大本营');
+
+            if (isHQ) {
+                tbody.innerHTML = dataArray.map(lv => `
+                    <tr>
+                        <td style="font-weight:bold; border-right:1px solid rgba(0,0,0,0.03);">${lv.lv}</td>
+                        <td class="${hlType === 'hp' ? 'calc-highlight-hp' : ''}" style="border-right:1px solid rgba(0,0,0,0.03);">${formatNum(lv.hp)}</td>
+                        <td style="color:#a16207;">${formatNum(lv.cw)}</td>
+                        <td style="color:#4b5563;">${formatNum(lv.cs)}</td>
+                        <td style="color:#1f2937; border-right:1px solid rgba(0,0,0,0.03);">${formatNum(lv.ci)}</td>
+                        <td style="color:#ca8a04;">${formatNum(lv.capG)}</td>
+                        <td style="color:#a16207;">${formatNum(lv.capW)}</td>
+                        <td style="color:#4b5563;">${formatNum(lv.capS)}</td>
+                        <td style="color:#1f2937; border-right:1px solid rgba(0,0,0,0.03);">${formatNum(lv.capI)}</td>
+                        <td style="border-right:1px solid rgba(0,0,0,0.03);">${lv.time === '/' ? '<span class="val-none">/</span>' : lv.time}</td>
+                        <td style="border-right:1px solid rgba(0,0,0,0.03);">${formatNum(lv.diamond)}</td>
+                        <td style="border-right:1px solid rgba(0,0,0,0.03);">${formatNum(lv.ticket)}</td>
+                        <td style="border-right:1px solid rgba(0,0,0,0.03);">${formatNum(lv.reqLv)}</td>
+                        <td style="color:var(--primary); font-weight:bold;">${formatNum(lv.exp)}</td>
+                    </tr>
+                `).join('');
+            } else if (data && data.renderRowTemplate) {
+                // 如果数据体自带渲染模板，则使用其自带的逻辑渲染每一行
+                tbody.innerHTML = dataArray.map(lv => data.renderRowTemplate(lv, hlType, formatNum)).join('');
+            } else {
+                // 标准兵种/建筑的默认渲染逻辑
+                tbody.innerHTML = dataArray.map(lv => `
+                    <tr>
+                        <td style="font-weight:bold;">${lv.lv}</td>
+                        <td class="${hlType === 'hp' ? 'calc-highlight-hp' : ''}">${formatNum(lv.hp)}</td>
+                        <td class="${hlType === 'dmg' ? 'calc-highlight-dmg' : ''}">${formatNum(lv.dmg)}</td>
+                        <td>${formatNum(lv.train)}</td>
+                        <td style="color:#ca8a04;">${formatNum(lv.upg)}</td>
+                        <td>${formatNum(lv.mirc)}</td>
+                        <td>${lv.time === '/' ? '<span class="val-none">/</span>' : lv.time}</td>
+                        <td>${formatNum(lv.diamond)}</td>
+                        <td>${formatNum(lv.ticket)}</td>
+                        <td style="color:var(--primary);">${formatNum(lv.exp)}</td>
+                    </tr>
+                `).join('');
+            }
         }
 
         function applyBoost(type) {
             const inputVal = document.getElementById(`${type}-input`).value;
             const percent = parseInt(inputVal);
             if(isNaN(percent) || percent < 0) { showToast("请输入有效的整数百分比"); return; }
-            const hpInput = parseInt(document.getElementById('hp-input').value) || 0;
-            const dmgInput = parseInt(document.getElementById('dmg-input').value) || 0;
-            const newData = originalLevelData.map(item => ({
-                ...item,
-                hp: item.hp !== '/' ? Math.round(item.hp * (1 + hpInput/100)) : '/',
-                dmg: item.dmg !== '/' ? Math.round(item.dmg * (1 + dmgInput/100)) : '/'
-            }));
+            
+            const hpElem = document.getElementById('hp-input');
+            const hpInput = hpElem ? (parseInt(hpElem.value) || 0) : 0;
+            
+            const dmgElem = document.getElementById('dmg-input');
+            const dmgInput = dmgElem ? (parseInt(dmgElem.value) || 0) : 0;
+            
+            const currentName = document.getElementById('current-category-title').textContent;
+            const data = window.GameDataDB[currentName];
+
+            let newData;
+            // 判断自身是否带有自定义计算逻辑（如同时处理 perDmg 等自定义字段）
+            if (data && data.calculateData) {
+                newData = data.calculateData(originalLevelData, hpInput, dmgInput);
+            } else {
+                newData = originalLevelData.map(item => ({
+                    ...item,
+                    hp: item.hp !== '/' ? Math.round(item.hp * (1 + hpInput/100)) : '/',
+                    dmg: item.dmg && item.dmg !== '/' ? Math.round(item.dmg * (1 + dmgInput/100)) : '/'
+                }));
+            }
             renderUpgradeTable(newData, type);
         }
 
         function resetBoost() {
-            document.getElementById('hp-input').value = '';
-            document.getElementById('dmg-input').value = '';
+            const hpElem = document.getElementById('hp-input');
+            const dmgElem = document.getElementById('dmg-input');
+            if (hpElem) hpElem.value = '';
+            if (dmgElem) dmgElem.value = '';
             renderUpgradeTable(originalLevelData, null);
         }
 
